@@ -37,27 +37,40 @@
             android:id="@+id/llNavSearch"
             android:layout_width="match_parent"
             android:layout_height="48dp"
+            android:layout_below="@id/tvHlLibrary"
             android:background="@drawable/nav_item"
             android:clickable="true"
-            android:layout_below="@id/tvHlLibrary"
-            android:gravity="center|left"
-            android:padding="4dp" >
+            android:gravity="center|left" >
 
-            <ImageView
-                android:id="@+id/ivNavSearch"
+            <View
+                android:id="@+id/viewRedbarNavSearch"
+                android:layout_width="8dp"
+                android:layout_height="fill_parent" >
+            </View>
+
+            <RelativeLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginLeft="8dp"
-                android:src="@drawable/ic_action_search" />
+                android:layout_marginLeft="4dp"
+                android:padding="4dp" >
 
-            <TextView
-                android:id="@+id/tvNavSearch"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginLeft="8dp"
-                android:text="@string/nav_search"
-                android:textAppearance="?android:attr/textAppearanceMedium"
-                android:textColor="@color/nav_fg" />
+                <ImageView
+                    android:id="@+id/ivNavSearch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:src="@drawable/ic_action_search" />
+
+                <TextView
+                    android:id="@+id/tvNavSearch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerVertical="true"
+                    android:layout_marginLeft="8dp"
+                    android:layout_toRightOf="@id/ivNavSearch"
+                    android:text="@string/nav_search"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    android:textColor="@color/nav_fg" />
+            </RelativeLayout>
         </LinearLayout>
 
         <LinearLayout
@@ -67,24 +80,38 @@
             android:layout_below="@id/llNavSearch"
             android:background="@drawable/nav_item"
             android:clickable="true"
-            android:gravity="center|left"
-            android:padding="4dp" >
+            android:gravity="center|left" >
 
-            <ImageView
-                android:id="@+id/ivNavAccount"
+            <View
+                android:id="@+id/viewRedbarNavAccount"
+                android:layout_width="8dp"
+                android:layout_height="fill_parent" >
+            </View>
+
+            <RelativeLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginLeft="8dp"
-                android:src="@drawable/ic_action_account" />
+                android:layout_marginLeft="4dp"
+                android:padding="4dp" >
 
-            <TextView
-                android:id="@+id/tvNavAccount"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginLeft="8dp"
-                android:text="@string/nav_account"
-                android:textAppearance="?android:attr/textAppearanceMedium"
-                android:textColor="@color/nav_fg" />
+                <ImageView
+                    android:id="@+id/ivNavAccount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerVertical="true"
+                    android:src="@drawable/ic_action_account" />
+
+                <TextView
+                    android:id="@+id/tvNavAccount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerVertical="true"
+                    android:layout_marginLeft="8dp"
+                    android:layout_toRightOf="@id/ivNavAccount"
+                    android:text="@string/nav_account"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    android:textColor="@color/nav_fg" />
+            </RelativeLayout>
         </LinearLayout>
 
         <LinearLayout
@@ -94,24 +121,38 @@
             android:layout_below="@id/llNavAccount"
             android:background="@drawable/nav_item"
             android:clickable="true"
-            android:gravity="center|left"
-            android:padding="4dp" >
+            android:gravity="center|left" >
 
-            <ImageView
-                android:id="@+id/ivNavStarred"
+            <View
+                android:id="@+id/viewRedbarNavStarred"
+                android:layout_width="8dp"
+                android:layout_height="fill_parent" >
+            </View>
+
+            <RelativeLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginLeft="8dp"
-                android:src="@drawable/ic_action_star_1" />
+                android:layout_marginLeft="4dp"
+                android:padding="4dp" >
 
-            <TextView
-                android:id="@+id/tvNavStarred"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginLeft="8dp"
-                android:text="@string/nav_starred"
-                android:textAppearance="?android:attr/textAppearanceMedium"
-                android:textColor="@color/nav_fg" />
+                <ImageView
+                    android:id="@+id/ivNavStarred"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerVertical="true"
+                    android:src="@drawable/ic_action_star_1" />
+
+                <TextView
+                    android:id="@+id/tvNavStarred"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerVertical="true"
+                    android:layout_marginLeft="8dp"
+                    android:layout_toRightOf="@id/ivNavStarred"
+                    android:text="@string/nav_starred"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    android:textColor="@color/nav_fg" />
+            </RelativeLayout>
         </LinearLayout>
 
         <LinearLayout
@@ -121,24 +162,38 @@
             android:layout_below="@id/llNavStarred"
             android:background="@drawable/nav_item"
             android:clickable="true"
-            android:gravity="center|left"
-            android:padding="4dp" >
+            android:gravity="center|left" >
 
-            <ImageView
-                android:id="@+id/ivNavInfo"
+            <View
+                android:id="@+id/viewRedbarNavInfo"
+                android:layout_width="8dp"
+                android:layout_height="fill_parent" >
+            </View>
+
+            <RelativeLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginLeft="8dp"
-                android:src="@drawable/ic_action_info" />
+                android:layout_marginLeft="4dp"
+                android:padding="4dp" >
 
-            <TextView
-                android:id="@+id/tvNavInfo"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginLeft="8dp"
-                android:text="@string/nav_info"
-                android:textAppearance="?android:attr/textAppearanceMedium"
-                android:textColor="@color/nav_fg" />
+                <ImageView
+                    android:id="@+id/ivNavInfo"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerVertical="true"
+                    android:src="@drawable/ic_action_info" />
+
+                <TextView
+                    android:id="@+id/tvNavInfo"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerVertical="true"
+                    android:layout_marginLeft="8dp"
+                    android:layout_toRightOf="@id/ivNavInfo"
+                    android:text="@string/nav_info"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    android:textColor="@color/nav_fg" />
+            </RelativeLayout>
         </LinearLayout>
 
         <org.holoeverywhere.widget.TextView
@@ -184,24 +239,38 @@
             android:layout_below="@id/tvHlSettings"
             android:background="@drawable/nav_item"
             android:clickable="true"
-            android:gravity="center|left"
-            android:padding="4dp" >
+            android:gravity="center|left" >
 
-            <ImageView
-                android:id="@+id/ivNavSettings"
+            <View
+                android:id="@+id/viewRedbarNavSettings"
+                android:layout_width="8dp"
+                android:layout_height="fill_parent" >
+            </View>
+
+            <RelativeLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginLeft="8dp"
-                android:src="@drawable/ic_action_settings" />
+                android:layout_marginLeft="4dp"
+                android:padding="4dp" >
 
-            <TextView
-                android:id="@+id/tvNavSettings"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginLeft="8dp"
-                android:text="@string/nav_settings"
-                android:textAppearance="?android:attr/textAppearanceMedium"
-                android:textColor="@color/nav_fg" />
+                <ImageView
+                    android:id="@+id/ivNavSettings"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerVertical="true"
+                    android:src="@drawable/ic_action_settings" />
+
+                <TextView
+                    android:id="@+id/tvNavSettings"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerVertical="true"
+                    android:layout_marginLeft="8dp"
+                    android:layout_toRightOf="@id/ivNavSettings"
+                    android:text="@string/nav_settings"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    android:textColor="@color/nav_fg" />
+            </RelativeLayout>
         </LinearLayout>
 
         <LinearLayout
@@ -211,24 +280,38 @@
             android:layout_below="@id/llNavSettings"
             android:background="@drawable/nav_item"
             android:clickable="true"
-            android:gravity="center|left"
-            android:padding="4dp" >
+            android:gravity="center|left" >
 
-            <ImageView
-                android:id="@+id/ivNavAbout"
+            <View
+                android:id="@+id/viewRedbarNavAbout"
+                android:layout_width="8dp"
+                android:layout_height="fill_parent" >
+            </View>
+
+            <RelativeLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginLeft="8dp"
-                android:src="@drawable/ic_action_help" />
+                android:layout_marginLeft="4dp"
+                android:padding="4dp" >
 
-            <TextView
-                android:id="@+id/tvNavAbout"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginLeft="8dp"
-                android:text="@string/nav_about"
-                android:textAppearance="?android:attr/textAppearanceMedium"
-                android:textColor="@color/nav_fg" />
+                <ImageView
+                    android:id="@+id/ivNavAbout"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerVertical="true"
+                    android:src="@drawable/ic_action_help" />
+
+                <TextView
+                    android:id="@+id/tvNavAbout"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerVertical="true"
+                    android:layout_marginLeft="8dp"
+                    android:layout_toRightOf="@id/ivNavAbout"
+                    android:text="@string/nav_about"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    android:textColor="@color/nav_fg" />
+            </RelativeLayout>
         </LinearLayout>
     </RelativeLayout>
 

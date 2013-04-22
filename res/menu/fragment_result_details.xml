@@ -5,17 +5,20 @@
         android:id="@+id/action_share"
         android:icon="@drawable/ic_action_share"
         android:showAsAction="ifRoom"
+        android:orderInCategory="500"
         android:title="@string/share">
     </item>
     <item
         android:id="@+id/action_star"
         android:icon="@drawable/ic_action_star_0"
         android:showAsAction="ifRoom"
+        android:orderInCategory="501"
         android:title="@string/star">
     </item>
     <item
         android:id="@+id/action_reservation"
         android:showAsAction="ifRoom|withText"
+        android:orderInCategory="502"
         android:title="@string/reserve">
     </item>
     <item

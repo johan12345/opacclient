@@ -15,7 +15,7 @@ import com.actionbarsherlock.view.MenuItem;
 
 import de.geeksfactory.opacclient.R;
 
-public class ChangelogActivity extends OpacActivity {
+public class ChangelogActivity extends SublevelFragmentActivity {
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -55,5 +55,11 @@ public class ChangelogActivity extends OpacActivity {
 			return true;
 		}
 		return super.onOptionsItemSelected(item);
+	}
+
+	@Override
+	public void accountSelected() {
+		// TODO Auto-generated method stub
+		
 	}
 }

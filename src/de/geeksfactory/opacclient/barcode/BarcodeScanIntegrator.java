@@ -14,13 +14,15 @@ import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.pm.ResolveInfo;
 import android.net.Uri;
+import android.support.v4.app.Fragment;
 import de.geeksfactory.opacclient.R;
 
 public class BarcodeScanIntegrator {
 	public static final int REQUEST_CODE_QRDROID = 0x0000094c;
 	public static final int REQUEST_CODE_ZXING = 0x0000094d;
 
-	private Activity ctx = null;
+	private Activity activity = null;
+	private Fragment fragment = null;
 
 	public static class ScanResult {
 		private final String contents;
@@ -47,8 +49,16 @@ public class BarcodeScanIntegrator {
 		}
 	}
 
-	public BarcodeScanIntegrator(Activity ctx) {
-		this.ctx = ctx;
+	public BarcodeScanIntegrator(Object ctx) {
+		if (ctx instanceof Activity) {
+			activity = (Activity) ctx;
+		} else if (ctx instanceof Fragment) {
+			fragment = (Fragment) ctx;
+			activity = fragment.getActivity();
+		} else {
+			throw new RuntimeException(
+					"ctx should be either an Activity or a Fragment!");
+		}
 	}
 
 	public static ScanResult parseActivityResult(int requestCode,
@@ -72,7 +82,7 @@ public class BarcodeScanIntegrator {
 	}
 
 	public void initiateScan() {
-		PackageManager pm = ctx.getPackageManager();
+		PackageManager pm = activity.getPackageManager();
 		try {
 			pm.getPackageInfo("com.google.zxing.client.android", 0);
 			initiate_scan_zxing();
@@ -113,7 +123,7 @@ public class BarcodeScanIntegrator {
 	}
 
 	public void download_dialog() {
-		AlertDialog.Builder downloadDialog = new AlertDialog.Builder(ctx);
+		AlertDialog.Builder downloadDialog = new AlertDialog.Builder(activity);
 		downloadDialog.setTitle(R.string.barcode_title);
 		downloadDialog.setMessage(R.string.barcode_desc);
 		downloadDialog.setPositiveButton(R.string.barcode_gplay,
@@ -124,7 +134,7 @@ public class BarcodeScanIntegrator {
 								.parse("market://details?id=com.google.zxing.client.android");
 						Intent intent = new Intent(Intent.ACTION_VIEW, uri);
 						try {
-							ctx.startActivity(intent);
+							startActivity(intent);
 						} catch (ActivityNotFoundException anfe) {
 							// Hmm, market is not installed
 						}
@@ -137,7 +147,7 @@ public class BarcodeScanIntegrator {
 						Uri uri = Uri
 								.parse("http://www.amazon.com/gp/mas/dl/android?p=com.google.zxing.client.android");
 						Intent intent = new Intent(Intent.ACTION_VIEW, uri);
-						ctx.startActivity(intent);
+						startActivity(intent);
 					}
 				});
 		downloadDialog.setNegativeButton(R.string.barcode_no,
@@ -178,14 +188,14 @@ public class BarcodeScanIntegrator {
 		intentScan.setPackage(targetAppPackage);
 		intentScan.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 		intentScan.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
-		ctx.startActivityForResult(intentScan, REQUEST_CODE_ZXING);
+		startActivityForResult(intentScan, REQUEST_CODE_ZXING);
 	}
 
 	private String findTargetAppPackage(Intent intent) {
 		final Collection<String> targetApplications = list(
 				"com.google.zxing.client.android", "com.srowen.bs.android",
 				"com.srowen.bs.android.simple");
-		PackageManager pm = ctx.getPackageManager();
+		PackageManager pm = activity.getPackageManager();
 		List<ResolveInfo> availableApps = pm.queryIntentActivities(intent,
 				PackageManager.MATCH_DEFAULT_ONLY);
 		if (availableApps != null) {
@@ -202,10 +212,24 @@ public class BarcodeScanIntegrator {
 	public void initiate_scan_qrdroid() {
 		Intent qrDroid = new Intent("la.droid.qr.scan");
 		qrDroid.putExtra("la.droid.qr.complete", true);
-		ctx.startActivityForResult(qrDroid, REQUEST_CODE_QRDROID);
+		startActivityForResult(qrDroid, REQUEST_CODE_QRDROID);
 	}
 
 	private static Collection<String> list(String... values) {
 		return Collections.unmodifiableCollection(Arrays.asList(values));
+	}
+
+	private void startActivityForResult(Intent intent, int requestCode) {
+		if (fragment != null)
+			fragment.startActivityForResult(intent, requestCode);
+		else
+			activity.startActivityForResult(intent, requestCode);
+	}
+
+	private void startActivity(Intent intent) {
+		if (fragment != null)
+			fragment.startActivity(intent);
+		else
+			activity.startActivity(intent);
 	}
 }

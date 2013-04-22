@@ -121,7 +121,7 @@ public class AccountEditActivity extends SherlockActivity {
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
-		getSupportMenuInflater().inflate(R.menu.activity_account_edit, menu);
+		getSupportMenuInflater().inflate(R.menu.fragment_account_edit, menu);
 		if (getIntent().hasExtra("adding")
 				&& getIntent().getBooleanExtra("adding", false)) {
 			menu.findItem(R.id.action_delete).setVisible(false);

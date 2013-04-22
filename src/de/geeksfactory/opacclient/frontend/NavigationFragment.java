@@ -7,6 +7,7 @@ import org.json.JSONException;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
@@ -35,42 +36,94 @@ public class NavigationFragment extends Fragment {
 	}
 
 	protected void registerListeners(View v) {
+		// Search
+		if (getActivity() instanceof SearchActivity) {
+			v.findViewById(R.id.llNavSearch).setBackgroundResource(
+					R.drawable.nav_active);
+			v.findViewById(R.id.viewRedbarNavSearch).setBackgroundColor(
+					getResources().getColor(R.color.nav_highlighted_border));
+		} else {
+			v.findViewById(R.id.llNavSearch).setBackgroundResource(
+					R.drawable.nav_item);
+			v.findViewById(R.id.viewRedbarNavSearch).setBackgroundColor(
+					Color.TRANSPARENT);
+		}
 		v.findViewById(R.id.llNavSearch).setOnClickListener(
 				new OnClickListener() {
 					@Override
 					public void onClick(View v) {
 						Intent intent = new Intent(getActivity(),
 								SearchActivity.class);
+						intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
 						startActivity(intent);
 					}
 				});
 
+		// Account
+		if (getActivity() instanceof AccountActivity) {
+			v.findViewById(R.id.llNavAccount).setBackgroundResource(
+					R.drawable.nav_active);
+			v.findViewById(R.id.viewRedbarNavAccount).setBackgroundColor(
+					getResources().getColor(R.color.nav_highlighted_border));
+		} else {
+			v.findViewById(R.id.llNavAccount).setBackgroundResource(
+					R.drawable.nav_item);
+			v.findViewById(R.id.viewRedbarNavAccount).setBackgroundColor(
+					Color.TRANSPARENT);
+		}
 		v.findViewById(R.id.llNavAccount).setOnClickListener(
 				new OnClickListener() {
 					@Override
 					public void onClick(View v) {
 						Intent intent = new Intent(getActivity(),
 								AccountActivity.class);
+						intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
 						startActivity(intent);
 					}
 				});
 
+		// Starred
+		if (getActivity() instanceof StarredActivity) {
+			v.findViewById(R.id.llNavStarred).setBackgroundResource(
+					R.drawable.nav_active);
+			v.findViewById(R.id.viewRedbarNavStarred).setBackgroundColor(
+					getResources().getColor(R.color.nav_highlighted_border));
+		} else {
+			v.findViewById(R.id.llNavStarred).setBackgroundResource(
+					R.drawable.nav_item);
+			v.findViewById(R.id.viewRedbarNavStarred).setBackgroundColor(
+					Color.TRANSPARENT);
+		}
 		v.findViewById(R.id.llNavStarred).setOnClickListener(
 				new OnClickListener() {
 					@Override
 					public void onClick(View v) {
 						Intent intent = new Intent(getActivity(),
 								StarredActivity.class);
+						intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
 						startActivity(intent);
 					}
 				});
 
+		// Information
+		if (getActivity() instanceof InfoActivity) {
+			v.findViewById(R.id.llNavInfo).setBackgroundResource(
+					R.drawable.nav_active);
+			v.findViewById(R.id.viewRedbarNavInfo).setBackgroundColor(
+					getResources().getColor(R.color.nav_highlighted_border));
+		} else {
+			v.findViewById(R.id.llNavInfo).setBackgroundResource(
+					R.drawable.nav_item);
+			v.findViewById(R.id.viewRedbarNavInfo).setBackgroundColor(
+					Color.TRANSPARENT);
+		}
 		v.findViewById(R.id.llNavInfo).setOnClickListener(
 				new OnClickListener() {
 					@Override
 					public void onClick(View v) {
 						Intent intent = new Intent(getActivity(),
 								InfoActivity.class);
+						intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
 						startActivity(intent);
 					}
 				});
@@ -99,7 +152,7 @@ public class NavigationFragment extends Fragment {
 	@Override
 	public View onCreateView(LayoutInflater inflater, ViewGroup container,
 			Bundle savedInstanceState) {
-		View v = inflater.inflate(getLayoutResource(), null);
+		View v = inflater.inflate(getLayoutResource(), container, false);
 		registerListeners(v);
 		return v;
 	}
@@ -230,9 +283,9 @@ public class NavigationFragment extends Fragment {
 
 	public void selectaccount(long id) {
 		((OpacClient) getActivity().getApplication()).setAccount(id);
-		if (getActivity() instanceof OpacActivity) {
-			((OpacActivity) getActivity()).accountSelected();
-			((OpacActivity) getActivity()).showContent();
+		if (getActivity() instanceof ToplevelFragmentActivity) {
+			((ToplevelFragmentActivity) getActivity()).accountSelected();
+			((ToplevelFragmentActivity) getActivity()).showContent();
 			reload();
 		}
 	}

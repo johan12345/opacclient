@@ -232,7 +232,7 @@ public class AccountListActivity extends SherlockActivity {
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
-		getSupportMenuInflater().inflate(R.menu.activity_account_list, menu);
+		getSupportMenuInflater().inflate(R.menu.fragment_account_list, menu);
 		return super.onCreateOptionsMenu(menu);
 	}
 

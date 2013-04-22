@@ -6,9 +6,21 @@
     android:orientation="horizontal" >
 
     <FrameLayout
+        android:id="@+id/menu_frame"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="2" />
+    
+    <FrameLayout
+        android:id="@+id/content_frame"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="3" />
+    
+    <FrameLayout
         android:id="@+id/frameResultDetails"
         android:layout_width="0dp"
         android:layout_height="match_parent"
-        android:layout_weight="1" />
+        android:layout_weight="3" />
 
 </LinearLayout>
