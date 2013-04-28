@@ -19,6 +19,7 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -53,6 +54,7 @@ public class SearchFragment extends OpacFragment {
 	public boolean metaDataLoading = false;
 	private long last_meta_try = 0;
 	private View view;
+	private Bundle initial_query;
 
 	public void urlintent() {
 		Uri d = getActivity().getIntent().getData();
@@ -351,10 +353,10 @@ public class SearchFragment extends OpacFragment {
 		manageVisibility();
 		fillComboBoxes();
 		loadingIndicators();
+		restoreInstance();
 	}
 
 	private void fillComboBoxes() {
-		// TODO: Preserve previously selected values
 		Spinner cbZst = (Spinner) view.findViewById(R.id.cbBranch);
 		Spinner cbZstHome = (Spinner) view.findViewById(R.id.cbHomeBranch);
 
@@ -467,7 +469,99 @@ public class SearchFragment extends OpacFragment {
 		return view;
 	}
 
-	public void go() {
+	protected void restoreInstance() {
+		if (initial_query != null) {
+			initEtFromBundle(initial_query, OpacApi.KEY_SEARCH_QUERY_FREE,
+					R.id.etSimpleSearch);
+			initEtFromBundle(initial_query, OpacApi.KEY_SEARCH_QUERY_TITLE,
+					R.id.etTitel);
+			initEtFromBundle(initial_query, OpacApi.KEY_SEARCH_QUERY_AUTHOR,
+					R.id.etVerfasser);
+			initEtFromBundle(initial_query, OpacApi.KEY_SEARCH_QUERY_ISBN,
+					R.id.etISBN);
+			initEtFromBundle(initial_query, OpacApi.KEY_SEARCH_QUERY_BARCODE,
+					R.id.etBarcode);
+			initEtFromBundle(initial_query, OpacApi.KEY_SEARCH_QUERY_YEAR,
+					R.id.etJahr);
+			initEtFromBundle(initial_query,
+					OpacApi.KEY_SEARCH_QUERY_YEAR_RANGE_START, R.id.etJahrVon);
+			initEtFromBundle(initial_query,
+					OpacApi.KEY_SEARCH_QUERY_YEAR_RANGE_END, R.id.etJahrBis);
+			initEtFromBundle(initial_query, OpacApi.KEY_SEARCH_QUERY_KEYWORDA,
+					R.id.etSchlagA);
+			initEtFromBundle(initial_query, OpacApi.KEY_SEARCH_QUERY_KEYWORDB,
+					R.id.etSchlagB);
+			initEtFromBundle(initial_query, OpacApi.KEY_SEARCH_QUERY_SYSTEM,
+					R.id.etSystematik);
+			initEtFromBundle(initial_query, OpacApi.KEY_SEARCH_QUERY_AUDIENCE,
+					R.id.etInteressenkreis);
+			initEtFromBundle(initial_query, OpacApi.KEY_SEARCH_QUERY_PUBLISHER,
+					R.id.etVerlag);
+
+			if (initial_query.containsKey(OpacApi.KEY_SEARCH_QUERY_BRANCH)) {
+				int selected = 0;
+				int i = 0;
+				String selection = initial_query
+						.getString(OpacApi.KEY_SEARCH_QUERY_BRANCH);
+				for (ContentValues row : cbZst_data) {
+					if (row.getAsString("key").equals(selection)) {
+						selected = i;
+					}
+					i++;
+				}
+				((Spinner) view.findViewById(R.id.cbBranch))
+						.setSelection(selected);
+			}
+			if (initial_query.containsKey(OpacApi.KEY_SEARCH_QUERY_HOME_BRANCH)) {
+				int selected = 0;
+				int i = 0;
+				String selection = initial_query
+						.getString(OpacApi.KEY_SEARCH_QUERY_HOME_BRANCH);
+				for (ContentValues row : cbZstHome_data) {
+					if (row.getAsString("key").equals(selection)) {
+						selected = i;
+					}
+					i++;
+				}
+				((Spinner) view.findViewById(R.id.cbHomeBranch))
+						.setSelection(selected);
+			}
+			if (initial_query.containsKey(OpacApi.KEY_SEARCH_QUERY_CATEGORY)) {
+				int selected = 0;
+				int i = 0;
+				String selection = initial_query
+						.getString(OpacApi.KEY_SEARCH_QUERY_CATEGORY);
+				for (ContentValues row : cbMg_data) {
+					if (row.getAsString("key").equals(selection)) {
+						selected = i;
+					}
+					i++;
+				}
+				((Spinner) view.findViewById(R.id.cbMediengruppe))
+						.setSelection(selected);
+			}
+
+		}
+	}
+
+	protected void initEtFromBundle(Bundle query, String key, int resid) {
+		if (query.containsKey(key))
+			((EditText) view.findViewById(resid)).setText(query.getString(key));
+	}
+
+	protected void bundleAddTextFromEt(Bundle query, String key, int resid) {
+		String str = ((EditText) view.findViewById(resid)).getEditableText()
+				.toString();
+		if (!str.equals(""))
+			query.putString(key, str);
+	}
+
+	protected void bundleAddText(Bundle query, String key, String str) {
+		if (!str.equals(""))
+			query.putString(key, str);
+	}
+
+	public Bundle toQuery() {
 		String zst = "";
 		String mg = "";
 		String zst_home = "";
@@ -491,47 +585,46 @@ public class SearchFragment extends OpacFragment {
 							.getSelectedItemPosition()).getAsString("key");
 
 		Bundle query = new Bundle();
-		query.putString(OpacApi.KEY_SEARCH_QUERY_FREE, ((EditText) view
-				.findViewById(R.id.etSimpleSearch)).getEditableText()
-				.toString());
-		query.putString(OpacApi.KEY_SEARCH_QUERY_TITLE, ((EditText) view
-				.findViewById(R.id.etTitel)).getEditableText().toString());
-		query.putString(OpacApi.KEY_SEARCH_QUERY_AUTHOR, ((EditText) view
-				.findViewById(R.id.etVerfasser)).getEditableText().toString());
-		query.putString(OpacApi.KEY_SEARCH_QUERY_BRANCH, zst);
-		query.putString(OpacApi.KEY_SEARCH_QUERY_HOME_BRANCH, zst_home);
-		query.putString(OpacApi.KEY_SEARCH_QUERY_CATEGORY, mg);
-		query.putString(OpacApi.KEY_SEARCH_QUERY_ISBN, ((EditText) view
-				.findViewById(R.id.etISBN)).getEditableText().toString());
-		query.putString(OpacApi.KEY_SEARCH_QUERY_BARCODE, ((EditText) view
-				.findViewById(R.id.etBarcode)).getEditableText().toString());
-		query.putString(OpacApi.KEY_SEARCH_QUERY_YEAR, ((EditText) view
-				.findViewById(R.id.etJahr)).getEditableText().toString());
-		query.putString(OpacApi.KEY_SEARCH_QUERY_YEAR_RANGE_START,
-				((EditText) view.findViewById(R.id.etJahrVon))
-						.getEditableText().toString());
-		query.putString(OpacApi.KEY_SEARCH_QUERY_YEAR_RANGE_END,
-				((EditText) view.findViewById(R.id.etJahrBis))
-						.getEditableText().toString());
+
+		bundleAddTextFromEt(query, OpacApi.KEY_SEARCH_QUERY_FREE,
+				R.id.etSimpleSearch);
+		bundleAddTextFromEt(query, OpacApi.KEY_SEARCH_QUERY_TITLE, R.id.etTitel);
+		bundleAddTextFromEt(query, OpacApi.KEY_SEARCH_QUERY_AUTHOR,
+				R.id.etVerfasser);
+		bundleAddText(query, OpacApi.KEY_SEARCH_QUERY_BRANCH, zst);
+		bundleAddText(query, OpacApi.KEY_SEARCH_QUERY_HOME_BRANCH, zst_home);
+		bundleAddText(query, OpacApi.KEY_SEARCH_QUERY_CATEGORY, mg);
+		bundleAddTextFromEt(query, OpacApi.KEY_SEARCH_QUERY_ISBN, R.id.etISBN);
+		bundleAddTextFromEt(query, OpacApi.KEY_SEARCH_QUERY_BARCODE,
+				R.id.etBarcode);
+		bundleAddTextFromEt(query, OpacApi.KEY_SEARCH_QUERY_YEAR, R.id.etJahr);
+		bundleAddTextFromEt(query, OpacApi.KEY_SEARCH_QUERY_YEAR_RANGE_START,
+				R.id.etJahrVon);
+		bundleAddTextFromEt(query, OpacApi.KEY_SEARCH_QUERY_YEAR_RANGE_END,
+				R.id.etJahrBis);
 		if (advanced) {
-			query.putString(OpacApi.KEY_SEARCH_QUERY_KEYWORDA, ((EditText) view
-					.findViewById(R.id.etSchlagA)).getEditableText().toString());
-			query.putString(OpacApi.KEY_SEARCH_QUERY_KEYWORDB, ((EditText) view
-					.findViewById(R.id.etSchlagB)).getEditableText().toString());
-			query.putString(OpacApi.KEY_SEARCH_QUERY_SYSTEM, ((EditText) view
-					.findViewById(R.id.etSystematik)).getEditableText()
-					.toString());
-			query.putString(OpacApi.KEY_SEARCH_QUERY_AUDIENCE, ((EditText) view
-					.findViewById(R.id.etInteressenkreis)).getEditableText()
-					.toString());
-			query.putString(OpacApi.KEY_SEARCH_QUERY_PUBLISHER,
-					((EditText) view.findViewById(R.id.etVerlag))
-							.getEditableText().toString());
-			query.putString(
+			bundleAddTextFromEt(query, OpacApi.KEY_SEARCH_QUERY_KEYWORDA,
+					R.id.etSchlagA);
+			bundleAddTextFromEt(query, OpacApi.KEY_SEARCH_QUERY_KEYWORDB,
+					R.id.etSchlagB);
+			bundleAddTextFromEt(query, OpacApi.KEY_SEARCH_QUERY_SYSTEM,
+					R.id.etSystematik);
+			bundleAddTextFromEt(query, OpacApi.KEY_SEARCH_QUERY_AUDIENCE,
+					R.id.etInteressenkreis);
+			bundleAddTextFromEt(query, OpacApi.KEY_SEARCH_QUERY_PUBLISHER,
+					R.id.etVerlag);
+			bundleAddText(
+					query,
 					"order",
 					(((Integer) ((Spinner) view.findViewById(R.id.cbOrder))
 							.getSelectedItemPosition()) + 1) + "");
 		}
+
+		return query;
+	}
+
+	public void go() {
+		Bundle query = toQuery();
 		app.startSearch(getActivity(), query);
 	}
 
@@ -626,6 +719,23 @@ public class SearchFragment extends OpacFragment {
 			Toast.makeText(getActivity(),
 					R.string.barcode_internal_not_supported, Toast.LENGTH_LONG)
 					.show();
+		}
+	}
+
+	@Override
+	public void onSaveInstanceState(Bundle outState) {
+		super.onSaveInstanceState(outState);
+		Bundle query = toQuery();
+		outState.putBundle("query", query);
+	}
+
+	@Override
+	public void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		if (savedInstanceState != null) {
+			if (savedInstanceState.containsKey("query")) {
+				initial_query = savedInstanceState.getBundle("query");
+			}
 		}
 	}
 

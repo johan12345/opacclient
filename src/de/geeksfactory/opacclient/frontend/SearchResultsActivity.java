@@ -41,7 +41,8 @@ public class SearchResultsActivity extends SublevelFragmentActivity implements
 						(int) result.getNr(), null);
 
 			getSupportFragmentManager().beginTransaction()
-					.replace(R.id.frameResultDetails, frResultDetails).commit();
+					.replace(R.id.frameResultDetails, frResultDetails)
+					.addToBackStack(null).commit();
 		} else {
 			Intent intent = new Intent(this, SearchResultDetailsActivity.class);
 			intent.putExtra("item", (int) result.getNr());
