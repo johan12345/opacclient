@@ -39,8 +39,14 @@ public class ReminderBootBroadcastReceiver extends BroadcastReceiver {
 
         AlarmManager am = (AlarmManager) context
                 .getSystemService(Context.ALARM_SERVICE);
+
         // Wait something around half an hour after system has booted
+        /*am.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis()
+                + (1000 * 1600), sender);*/
+
+        // TODO: Code for debugging should be removed again before release
         am.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis()
-                + (1000 * 1600), sender);
+                + (1000 * 30), sender);
+        // End of debugging code
     }
 }

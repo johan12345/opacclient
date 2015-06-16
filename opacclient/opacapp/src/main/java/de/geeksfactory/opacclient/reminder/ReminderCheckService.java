@@ -103,6 +103,22 @@ public class ReminderCheckService extends Service {
                 waittime = (1000 * 3600 * 12);
             }
 
+            // TODO: Code for debugging should be removed again before release
+            waittime = 1000 * 60;
+
+            NotificationManager notificationManager =
+                    (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            NotificationCompat.Builder nb = new NotificationCompat.Builder(
+                    ReminderCheckService.this);
+            nb.setContentTitle("Hello");
+            nb.setContentText("OpacClient background service is working");
+            nb.setSmallIcon(R.drawable.ic_stat_notification);
+            nb.setAutoCancel(true);
+
+            Notification notification = nb.build();
+            notificationManager.notify(OpacClient.NOTIF_ID, notification);
+            // End of debugging code
+
             Intent i = new Intent(ReminderCheckService.this,
                     ReminderAlarmReceiver.class);
             PendingIntent sender = PendingIntent.getBroadcast(
