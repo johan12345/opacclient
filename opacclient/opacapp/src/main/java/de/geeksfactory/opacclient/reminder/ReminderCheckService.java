@@ -257,8 +257,13 @@ public class ReminderCheckService extends Service {
             if (result == null || exception) {
                 Log.i("ReminderCheckService", "Opac App Service: Quick repeat");
                 // Try again in one hour
+                /*am.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis()
+                        + (1000 * 3600), sender);*/
+                // TODO: Code for debugging should be removed again before release
                 am.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis()
-                        + (1000 * 3600), sender);
+                        + (1000 * 30), sender);
+                // End of debugging code
+
                 if (result == null) {
                     return;
                 }
