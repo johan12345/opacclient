@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+          android:installLocation="auto"
     package="de.geeksfactory.opacclient">
 
     <uses-permission android:name="android.permission.INTERNET" />
@@ -143,6 +144,7 @@
         <receiver android:name="de.geeksfactory.opacclient.reminder.ReminderBootBroadcastReceiver" >
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.EXTERNAL_APPLICATIONS_AVAILABLE"/>
             </intent-filter>
         </receiver>
         <receiver android:name="de.geeksfactory.opacclient.reminder.ReminderAlarmReceiver" >
