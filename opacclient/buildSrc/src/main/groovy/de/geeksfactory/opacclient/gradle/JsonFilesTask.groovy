@@ -18,14 +18,7 @@ class JsonFilesTask extends DefaultTask {
 
     @TaskAction
     def downloadFiles() {
-        // Let's Encrypt certificates are not (yet?) trusted by Java JDK :(
-        KeyStore keystore = KeyStore.getInstance(KeyStore.getDefaultType())
-        keystore.load(new FileInputStream("ssl_certificate.jks"), "FVVMHEdautxVcb9h4WdeZdMmvUwUHzgh".toCharArray())
-        TrustManagerFactory tmf = TrustManagerFactory.getInstance("X509")
-        tmf.init(keystore)
-        SSLContext context = SSLContext.getInstance("TLS");
-        context.init(null, tmf.getTrustManagers(), null)
-        SSLSocketFactory factory = context.getSocketFactory()
+        SSLSocketFactory factory = createSSLSocketFactory()
 
         HttpsURLConnection conn = (HttpsURLConnection) API_URL.toURL().openConnection()
         conn.setSSLSocketFactory(factory)
@@ -39,5 +32,18 @@ class JsonFilesTask extends DefaultTask {
             File file = new File(BIBS_DIR, id + ".json")
             file.write(library.toString(4))
         }
+    }
+
+    private SSLSocketFactory createSSLSocketFactory() {
+        // Let's Encrypt certificates are not (yet?) trusted by Java JDK :(
+        KeyStore keystore = KeyStore.getInstance(KeyStore.getDefaultType())
+        keystore.load(new FileInputStream("opacapp/ssl/letsencrypt_x1.jks"),
+                "FVVMHEdautxVcb9h4WdeZdMmvUwUHzgh".toCharArray())
+        TrustManagerFactory tmf = TrustManagerFactory.getInstance("X509")
+        tmf.init(keystore)
+        SSLContext context = SSLContext.getInstance("TLS")
+        context.init(null, tmf.getTrustManagers(), null)
+        SSLSocketFactory factory = context.getSocketFactory()
+        return factory
     }
 }
