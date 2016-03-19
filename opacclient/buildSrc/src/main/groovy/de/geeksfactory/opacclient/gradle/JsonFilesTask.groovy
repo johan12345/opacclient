@@ -18,10 +18,8 @@ class JsonFilesTask extends DefaultTask {
 
     @TaskAction
     def downloadFiles() {
-        SSLSocketFactory factory = createSSLSocketFactory()
-
         HttpsURLConnection conn = (HttpsURLConnection) API_URL.toURL().openConnection()
-        conn.setSSLSocketFactory(factory)
+        conn.setSSLSocketFactory(createSSLSocketFactory())
         String response = conn.getInputStream().getText()
         JSONArray data = new JSONArray(response)
         GFileUtils.cleanDirectory(new File(BIBS_DIR))
