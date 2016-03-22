@@ -28,7 +28,7 @@ class JsonFilesTask extends DefaultTask {
             String id = library.getString("_id")
             library.remove("_id")
             File file = new File(BIBS_DIR, id + ".json")
-            file.write(library.toString(4))
+            file.write(library.toString())
         }
     }
 
