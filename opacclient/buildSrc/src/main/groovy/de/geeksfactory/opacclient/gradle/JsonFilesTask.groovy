@@ -14,7 +14,7 @@ import java.security.KeyStore
 
 class JsonFilesTask extends DefaultTask {
     private static final String API_URL = "https://info.opacapp.net/androidconfig_app/?format=json"
-    public static final String BIBS_DIR = "opacapp/src/main/assets/bibs"
+    private static final String BIBS_DIR = "opacapp/src/main/assets/bibs"
 
     @TaskAction
     def downloadFiles() {
