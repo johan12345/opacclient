@@ -425,32 +425,20 @@ public class AccountDataSource {
         return accs;
     }
 
-    public long addAlarm(LocalDate deadline, long[] media, DateTime alarmTime) {
-        for (long mid : media) {
-            if (getLentItem(mid) == null) {
-                throw new DataIntegrityException(
-                        "Cannot add alarm with deadline " + deadline.toString() +
-                                " that has dependency on the non-existing media item " + mid);
-            }
-        }
+    public long addAlarm(Alarm alarm) {
+        checkConsistency(alarm, "add");
 
         ContentValues values = new ContentValues();
-        values.put("deadline", deadline.toString());
-        values.put("media", joinLongs(media, ","));
-        values.put("alarm", alarmTime.toString());
-        values.put("notified", 0);
-        values.put("finished", 0);
+        values.put("deadline", alarm.deadline.toString());
+        values.put("media", joinLongs(alarm.media, ","));
+        values.put("alarm", alarm.notificationTime.toString());
+        values.put("notified", alarm.notified ? 1 : 0);
+        values.put("finished", alarm.finished ? 1 : 0);
         return database.insert(AccountDatabase.TABLENAME_ALARMS, null, values);
     }
 
     public void updateAlarm(Alarm alarm) {
-        for (long mid : alarm.media) {
-            if (getLentItem(mid) == null) {
-                throw new DataIntegrityException(
-                        "Cannot update alarm with deadline " + alarm.deadline.toString() +
-                                " that has dependency on the non-existing media item " + mid);
-            }
-        }
+        checkConsistency(alarm, "update");
 
         ContentValues values = new ContentValues();
         values.put("deadline", alarm.deadline.toString());
@@ -460,6 +448,16 @@ public class AccountDataSource {
         values.put("finished", alarm.finished ? 1 : 0);
         database.update(AccountDatabase.TABLENAME_ALARMS, values, "id = ?",
                 new String[]{alarm.id + ""});
+    }
+
+    private void checkConsistency(Alarm alarm, String update) {
+        for (long mid : alarm.media) {
+            if (getLentItem(mid) == null) {
+                throw new DataIntegrityException(
+                        "Cannot " + update + " alarm with deadline " + alarm.deadline.toString() +
+                                " that has dependency on the non-existing media item " + mid);
+            }
+        }
     }
 
     public void resetNotifiedOnAllAlarams() {
@@ -558,5 +556,17 @@ public class AccountDataSource {
             longs[i] = Long.valueOf(strings[i]);
         }
         return longs;
+    }
+
+    public void beginTransaction() {
+        database.beginTransaction();
+    }
+
+    public void setTransactionSuccessful() {
+        database.setTransactionSuccessful();
+    }
+
+    public void endTransaction() {
+        database.endTransaction();
     }
 }

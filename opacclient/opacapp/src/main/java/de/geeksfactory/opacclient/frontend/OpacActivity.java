@@ -532,7 +532,7 @@ public abstract class OpacActivity extends AppCompatActivity
                         ((OpacClient) getApplication())
                                 .setAccount(available_accounts.get(0).getId());
                     }
-                    new ReminderHelper(app).generateAlarms();
+                    new ReminderHelper(app).regenerateAlarms();
                     if (app.getLibrary() != null) {
                         return;
                     }

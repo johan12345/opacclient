@@ -1630,21 +1630,18 @@ public class AccountFragment extends Fragment implements
                 return null;
             }
 
-            try {
-                // save data
-                AccountDataSource adatasource;
-                if (getActivity() == null && OpacClient.getEmergencyContext() != null) {
-                    adatasource = new AccountDataSource(OpacClient.getEmergencyContext());
-                } else {
-                    adatasource = new AccountDataSource(getActivity());
-                }
-
-                account.setPasswordKnownValid(true);
-                adatasource.update(account);
-                adatasource.storeCachedAccountData(adatasource.getAccount(data.getAccount()), data);
-            } finally {
-                new ReminderHelper(app).generateAlarms();
+            // save data
+            AccountDataSource adatasource;
+            if (getActivity() == null && OpacClient.getEmergencyContext() != null) {
+                adatasource = new AccountDataSource(OpacClient.getEmergencyContext());
+            } else {
+                adatasource = new AccountDataSource(getActivity());
             }
+
+            account.setPasswordKnownValid(true);
+            adatasource.update(account);
+
+            new ReminderHelper(app).generateAlarmsAndSaveData(account, data);
 
             return data;
         }

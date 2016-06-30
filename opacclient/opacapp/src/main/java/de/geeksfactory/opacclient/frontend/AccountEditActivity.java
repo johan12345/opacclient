@@ -201,7 +201,7 @@ public class AccountEditActivity extends AppCompatActivity {
                         .get(0).getId());
             }
         }
-        new ReminderHelper((OpacClient) getApplication()).generateAlarms();
+        new ReminderHelper((OpacClient) getApplication()).regenerateAlarms();
     }
 
     @Override

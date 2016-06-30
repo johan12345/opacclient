@@ -32,7 +32,9 @@ import com.commonsware.cwac.wakeful.WakefulIntentService;
 import org.json.JSONException;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import de.geeksfactory.opacclient.BuildConfig;
 import de.geeksfactory.opacclient.OpacClient;
@@ -103,34 +105,33 @@ public class SyncAccountService extends WakefulIntentService {
             sp.edit().putBoolean("update_151_clear_cache", true).apply();
        }
 
-        try {
-            for (Account account : accounts) {
-                if (BuildConfig.DEBUG)
-                    Log.i(NAME, "Loading data for Account " + account.toString());
+        Map<Long, AccountData> map = new HashMap<>();
+        for (Account account : accounts) {
+            if (BuildConfig.DEBUG) {
+                Log.i(NAME, "Loading data for Account " + account.toString());
+            }
 
-                AccountData res;
-                try {
-                    Library library = app.getLibrary(account.getLibrary());
-                    if (!library.isAccountSupported()) continue;
-                    OpacApi api = app.getNewApi(library);
-                    res = api.account(account);
-                    if (res == null) {
-                        failed = true;
-                        continue;
-                    }
-                } catch (JSONException | IOException | OpacApi.OpacErrorException e) {
-                    e.printStackTrace();
+            AccountData res;
+            try {
+                Library library = app.getLibrary(account.getLibrary());
+                if (!library.isAccountSupported()) continue;
+                OpacApi api = app.getNewApi(library);
+                res = api.account(account);
+                if (res == null) {
                     failed = true;
                     continue;
                 }
-
-                account.setPasswordKnownValid(true);
-                data.update(account);
-                data.storeCachedAccountData(account, res);
+            } catch (JSONException | IOException | OpacApi.OpacErrorException e) {
+                e.printStackTrace();
+                failed = true;
+                continue;
             }
-        } finally {
-            new ReminderHelper(app).generateAlarms();
+
+            account.setPasswordKnownValid(true);
+            data.update(account);
+            map.put(account.getId(), res);
         }
+        new ReminderHelper(app).generateAlarmsAndSaveData(map);
     }
 
 }

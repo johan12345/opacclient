@@ -21,6 +21,8 @@ import java.util.Map;
 
 import de.geeksfactory.opacclient.BuildConfig;
 import de.geeksfactory.opacclient.OpacClient;
+import de.geeksfactory.opacclient.objects.Account;
+import de.geeksfactory.opacclient.objects.AccountData;
 import de.geeksfactory.opacclient.objects.LentItem;
 import de.geeksfactory.opacclient.storage.AccountDataSource;
 
@@ -33,38 +35,98 @@ public class ReminderHelper {
         sp = PreferenceManager.getDefaultSharedPreferences(app);
     }
 
-    /**
-     * Save alarms for expiring media to the DB and schedule them using {@link
-     * android.app.AlarmManager}.
-     */
-    public void generateAlarms() {
-        generateAlarms(-1, null);
+    public void generateAlarmsAndSaveData(Account account, AccountData data) {
+        Map<Long, AccountData> map = new HashMap<>();
+        map.put(account.getId(), data);
+        generateAlarmsAndSaveData(map);
     }
 
-    private void generateAlarms(int warning, Boolean enabled) {
+    /**
+     * Save account data and alarms for expiring media to the DB and schedule them using {@link
+     * android.app.AlarmManager}.
+     */
+    public void generateAlarmsAndSaveData(Map<Long, AccountData> map) {
         AccountDataSource data = new AccountDataSource(app);
-        // resets the notified field to false for all alarms with finished == false this will re-show
-        // notifications that were not dismissed yet (for example after reboot)
-        data.resetNotifiedOnAllAlarams();
+        List<LentItem> items = new ArrayList<>();
 
-        if (warning == -1) warning = Integer.parseInt(sp.getString("notification_warning", "3"));
-        if (warning > 10) {
-            // updated from the old app version -> change value to get days instead of milliseconds
-            warning = warning / (24 * 60 * 60 * 1000);
-            sp.edit().putString("notification_warning", String.valueOf(warning)).apply();
+        for (Account account : data.getAllAccounts()) {
+            if (map.containsKey(account.getId())) {
+                items.addAll(map.get(account.getId()).getLent());
+            } else {
+                items.addAll(data.getCachedAccountData(account).getLent());
+            }
         }
 
-        if (enabled == null) enabled = sp.getBoolean("notification_service", false);
+        int warning = getWarningPeriod();
+        boolean enabled = isNotificationEnabled();
+
         if (!enabled) {
             if (BuildConfig.DEBUG) {
-                Log.d("OpacClient",
-                        "scheduling no alarms because notifications are disabled");
+                Log.d("OpacClient", "scheduling no alarms because notifications are disabled");
             }
             return;
         }
 
+        GenerateAlarmsResult result = generateAlarms(warning, items, data);
+
+        data.beginTransaction();
+        try {
+            // resets the notified field to false for all alarms with finished == false this will
+            // re-show notifications that were not dismissed yet (for example after reboot)
+            data.resetNotifiedOnAllAlarams();
+
+            saveAlarms(result, data);
+            for (Account account : data.getAllAccounts()) {
+                if (map.containsKey(account.getId())) {
+                    data.storeCachedAccountData(account, map.get(account.getId()));
+                }
+            }
+            data.setTransactionSuccessful();
+        } finally {
+            data.endTransaction();
+        }
+        scheduleAlarms();
+    }
+
+    private void saveAlarms(GenerateAlarmsResult result, AccountDataSource data) {
+        for (Alarm alarm : result.alarmsToAdd) data.addAlarm(alarm);
+        for (Alarm alarm : result.alarmsToUpdate) data.updateAlarm(alarm);
+        for (Alarm alarm : result.alarmsToRemove) data.removeAlarm(alarm);
+    }
+
+    public void regenerateAlarms() {
+        regenerateAlarms(getWarningPeriod(), isNotificationEnabled());
+    }
+
+    private void regenerateAlarms(int warning, boolean enabled) {
+        if (!enabled) {
+            if (BuildConfig.DEBUG) {
+                Log.d("OpacClient", "scheduling no alarms because notifications are disabled");
+            }
+            return;
+        }
+
+        AccountDataSource data = new AccountDataSource(app);
         List<LentItem> items = data.getAllLentItems();
 
+        GenerateAlarmsResult result = generateAlarms(warning, items, data);
+
+        data.beginTransaction();
+        try {
+            // resets the notified field to false for all alarms with finished == false this will
+            // re-show notifications that were not dismissed yet (for example after reboot)
+            data.resetNotifiedOnAllAlarams();
+
+            saveAlarms(result, data);
+            data.setTransactionSuccessful();
+        } finally {
+            data.endTransaction();
+        }
+        scheduleAlarms(true);
+    }
+
+    private GenerateAlarmsResult generateAlarms(int warning, List<LentItem> items,
+            AccountDataSource data) {
         // Sort lent items by deadline
         Map<LocalDate, List<Long>> arrangedIds = new HashMap<>();
         for (LentItem item : items) {
@@ -84,13 +146,14 @@ public class ReminderHelper {
             arrangedIds.get(deadline).add(item.getDbId());
         }
 
+        GenerateAlarmsResult result = new GenerateAlarmsResult();
+
         for (Alarm alarm : data.getAllAlarms()) {
             // Remove alarms with no corresponding media
             if (!arrangedIds.containsKey(alarm.deadline)) {
                 cancelNotification(alarm);
-                data.removeAlarm(alarm);
+                result.alarmsToRemove.add(alarm);
             }
-
         }
 
         // Find and add/update corresponding alarms for current lent media
@@ -101,7 +164,7 @@ public class ReminderHelper {
             if (alarm != null) {
                 if (!Arrays.equals(media, alarm.media)) {
                     alarm.media = media;
-                    data.updateAlarm(alarm);
+                    result.alarmsToUpdate.add(alarm);
                 }
             } else {
                 if (BuildConfig.DEBUG) {
@@ -110,11 +173,14 @@ public class ReminderHelper {
                                     DateTimeFormat.shortDate().print(deadline) + " on " +
                                     DateTimeFormat.shortDate().print(deadline.minusDays(warning)));
                 }
-                data.addAlarm(deadline, media,
-                        deadline.minusDays(warning).toDateTimeAtStartOfDay());
+                alarm = new Alarm();
+                alarm.deadline = deadline;
+                alarm.media = media;
+                alarm.notificationTime = deadline.minusDays(warning).toDateTimeAtStartOfDay();
+                result.alarmsToAdd.add(alarm);
             }
         }
-        scheduleAlarms(true);
+        return result;
     }
 
     /**
@@ -126,7 +192,7 @@ public class ReminderHelper {
         // result in some notifications being shown immediately.
         cancelAllNotifications();
         clearAlarms();
-        generateAlarms(newWarning, null);
+        regenerateAlarms(newWarning, isNotificationEnabled());
     }
 
     /**
@@ -136,7 +202,7 @@ public class ReminderHelper {
     public void updateAlarms(boolean enabled) {
         cancelAllNotifications();
         clearAlarms();
-        generateAlarms(-1, enabled);
+        regenerateAlarms(getWarningPeriod(), enabled);
     }
 
     private void clearAlarms() {
@@ -164,7 +230,7 @@ public class ReminderHelper {
     }
 
     private void scheduleAlarms(boolean enabled) {
-        if (!sp.getBoolean("notification_service", false) && !enabled) return;
+        if (!isNotificationEnabled() && !enabled) return;
 
         AccountDataSource data = new AccountDataSource(app);
         AlarmManager alarmManager = (AlarmManager) app.getSystemService(Context.ALARM_SERVICE);
@@ -205,5 +271,31 @@ public class ReminderHelper {
     public void resetNotified() {
         AccountDataSource data = new AccountDataSource(app);
         data.resetNotifiedOnAllAlarams();
+    }
+
+    private static class GenerateAlarmsResult {
+        public List<Alarm> alarmsToRemove;
+        public List<Alarm> alarmsToUpdate;
+        public List<Alarm> alarmsToAdd;
+
+        public GenerateAlarmsResult() {
+            alarmsToRemove = new ArrayList<>();
+            alarmsToUpdate = new ArrayList<>();
+            alarmsToAdd = new ArrayList<>();
+        }
+    }
+
+    private int getWarningPeriod() {
+        int warning = Integer.parseInt(sp.getString("notification_warning", "3"));
+        if (warning > 10) {
+            // updated from the old app version -> change value to get days instead of milliseconds
+            warning = warning / (24 * 60 * 60 * 1000);
+            sp.edit().putString("notification_warning", String.valueOf(warning)).apply();
+        }
+        return warning;
+    }
+
+    private boolean isNotificationEnabled() {
+        return sp.getBoolean("notification_service", false);
     }
 }
