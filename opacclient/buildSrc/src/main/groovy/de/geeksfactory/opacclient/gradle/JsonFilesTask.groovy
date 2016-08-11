@@ -13,7 +13,7 @@ import javax.net.ssl.TrustManagerFactory
 import java.security.KeyStore
 
 class JsonFilesTask extends DefaultTask {
-    private static final String API_URL = "https://info.opacapp.net/androidconfig_app/?format=json"
+    private static final String API_URL = "https://info.opacapp.net/androidconfigs/?format=json"
     private static final String BIBS_DIR = "opacapp/src/main/assets/bibs"
 
     @TaskAction
@@ -35,7 +35,7 @@ class JsonFilesTask extends DefaultTask {
     private SSLSocketFactory createSSLSocketFactory() {
         // Let's Encrypt certificates are not (yet?) trusted by Java JDK :(
         KeyStore keystore = KeyStore.getInstance(KeyStore.getDefaultType())
-        keystore.load(new FileInputStream("opacapp/ssl/letsencrypt_x1.jks"),
+        keystore.load(getClass().getClassLoader().getResourceAsStream("letsencrypt_x3.jks"),
                 "FVVMHEdautxVcb9h4WdeZdMmvUwUHzgh".toCharArray())
         TrustManagerFactory tmf = TrustManagerFactory.getInstance("X509")
         tmf.init(keystore)
