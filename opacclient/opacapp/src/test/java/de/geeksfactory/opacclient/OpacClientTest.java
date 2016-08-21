@@ -43,7 +43,7 @@ public class OpacClientTest {
         doReturn(false).when(app).fileExists(filesDir, IDENT + ".json");
         try {
             app.getLibrary(IDENT);
-        } catch (JSONException e) {
+        } catch (JSONException | NullPointerException e) {
         }
         verify(assets).open(OpacClient.ASSETS_BIBSDIR + "/" + IDENT + ".json");
     }
@@ -53,7 +53,7 @@ public class OpacClientTest {
         doReturn(true).when(app).fileExists(filesDir, IDENT + ".json");
         try {
             app.getLibrary(IDENT);
-        } catch (JSONException e) {
+        } catch (JSONException | NullPointerException e) {
         }
         verify(app).openFile(filesDir, IDENT + ".json");
     }
