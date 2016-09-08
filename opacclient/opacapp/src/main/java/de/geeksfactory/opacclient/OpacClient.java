@@ -35,6 +35,8 @@ import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 
 import com.commonsware.cwac.wakeful.WakefulIntentService;
+import com.evernote.android.job.Job;
+import com.evernote.android.job.JobManager;
 
 import org.acra.ACRA;
 import org.acra.ACRAConfiguration;
@@ -73,6 +75,7 @@ import de.geeksfactory.opacclient.storage.StarContentProvider;
 import de.geeksfactory.opacclient.utils.DebugTools;
 import de.geeksfactory.opacclient.utils.ErrorReporter;
 import de.geeksfactory.opacclient.utils.Utils;
+import de.geeksfactory.opacclient.webservice.LibraryConfigUpdateJob;
 import de.geeksfactory.opacclient.webservice.LibraryConfigUpdateService;
 import de.geeksfactory.opacclient.webservice.WebserviceReportHandler;
 
@@ -391,6 +394,9 @@ public class OpacClient extends Application {
 
         // Schedule alarms
         WakefulIntentService.scheduleAlarms(new SyncAccountAlarmListener(), this);
+
+        JobManager.create(this).addJobCreator(new JobCreator());
+        LibraryConfigUpdateJob.scheduleJob();
     }
 
     public boolean getSlidingMenuEnabled() {
@@ -411,5 +417,17 @@ public class OpacClient extends Application {
     }
 
     public static class LibraryRemovedException extends Exception {
+    }
+
+    private class JobCreator implements com.evernote.android.job.JobCreator {
+        @Override
+        public Job create(String tag) {
+            switch (tag) {
+                case LibraryConfigUpdateJob.TAG:
+                    return new LibraryConfigUpdateJob();
+                default:
+                    return null;
+            }
+        }
     }
 }
