@@ -170,7 +170,7 @@ public class SISIS extends BaseApi implements OpacApi {
         String html = httpGet(opac_url
                         + "/search.do?methodToCall=switchSearchPage&SearchType=2",
                 ENCODING);
-        Document doc = Jsoup.parse(html);
+        Document doc = resolveFrames(Jsoup.parse(html));
         List<SearchField> fields = new ArrayList<>();
 
         Elements options = doc
@@ -188,6 +188,37 @@ public class SISIS extends BaseApi implements OpacApi {
         }
 
         return fields;
+    }
+
+    public Document resolveFrames(Document doc) throws IOException {
+        if (doc.select("frame[name=body]").size() > 0) {
+            doc.setBaseUri(opac_url);
+            String url = doc.select("frame[name=body]").attr("abs:src");
+            doc = Jsoup.parse(httpGet(url, ENCODING));
+            if (doc.select("frame[name=dialog]").size() > 0) {
+                doc.setBaseUri(url);
+                url = doc.select("frame[name=dialog]").attr("abs:src");
+                doc = Jsoup.parse(httpGet(url, ENCODING));
+            }
+        }
+        return doc;
+    }
+
+    public String resolveFrames(String html, String url) throws IOException {
+        Document doc = Jsoup.parse(html);
+        doc.setBaseUri(url);
+        if (doc.select("frame[name=body]").size() > 0) {
+            doc.setBaseUri(opac_url);
+            url = doc.select("frame[name=body]").attr("abs:src");
+            html = httpGet(url, ENCODING);
+            doc = Jsoup.parse(html);
+            if (doc.select("frame[name=dialog]").size() > 0) {
+                doc.setBaseUri(url);
+                url = doc.select("frame[name=dialog]").attr("abs:src");
+                html = httpGet(url, ENCODING);
+            }
+        }
+        return html;
     }
 
     private void parseDropdown(Element dropdownElement,
@@ -355,8 +386,8 @@ public class SISIS extends BaseApi implements OpacApi {
     }
 
     public SearchRequestResult parse_search(String html, int page)
-            throws OpacErrorException, SingleResultFound {
-        Document doc = Jsoup.parse(html);
+            throws OpacErrorException, SingleResultFound, IOException {
+        Document doc = resolveFrames(Jsoup.parse(html));
         doc.setBaseUri(opac_url + "/searchfoo");
 
         if (doc.select(".error").size() > 0) {
@@ -673,8 +704,9 @@ public class SISIS extends BaseApi implements OpacApi {
             hbp = "&selectedViewBranchlib=" + homebranch;
         }
 
-        String html = httpGet(opac_url + "/start.do?" + startparams
-                + "searchType=1&Query=0%3D%22" + id + "%22" + hbp, ENCODING);
+        String url = opac_url + "/start.do?" + startparams
+                + "searchType=1&Query=0%3D%22" + id + "%22" + hbp;
+        String html = resolveFrames(httpGet(url, ENCODING), url);
 
         return loadDetail(html);
     }
@@ -682,22 +714,21 @@ public class SISIS extends BaseApi implements OpacApi {
     @Override
     public DetailledItem getResult(int nr) throws IOException {
 
-        String html = httpGet(
-                opac_url
-                        + "/singleHit.do?tab=showExemplarActive&methodToCall=showHit&curPos="
-                        + (nr + 1) + "&identifier=" + identifier, ENCODING);
+        String url = opac_url
+                + "/singleHit.do?tab=showExemplarActive&methodToCall=showHit&curPos="
+                + (nr + 1) + "&identifier=" + identifier;
+        String html = resolveFrames(httpGet(url, ENCODING), url);
 
         return loadDetail(html);
     }
 
     protected DetailledItem loadDetail(String html) throws IOException {
-        String html2 = httpGet(opac_url
-                        + "/singleHit.do?methodToCall=activateTab&tab=showTitleActive",
-                ENCODING);
-        String html3 = httpGet(
-                opac_url
-                        + "/singleHit.do?methodToCall=activateTab&tab=showAvailabilityActive",
-                ENCODING);
+        String url2 = opac_url
+                + "/singleHit.do?methodToCall=activateTab&tab=showTitleActive";
+        String html2 = resolveFrames(httpGet(url2, ENCODING), url2);
+        String url3 = opac_url
+                + "/singleHit.do?methodToCall=activateTab&tab=showAvailabilityActive";
+        String html3 = resolveFrames(httpGet(url3, ENCODING), url3);
 
         String coverJs = null;
         Pattern coverPattern = Pattern.compile("\\$\\.ajax\\(\\{[\\n\\s]*url: '(jsp/result/cover" +
