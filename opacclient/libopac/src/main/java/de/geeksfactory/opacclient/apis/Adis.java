@@ -30,8 +30,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -60,8 +58,6 @@ import de.geeksfactory.opacclient.searchfields.SearchQuery;
 import de.geeksfactory.opacclient.searchfields.TextSearchField;
 
 public class Adis extends ApacheBaseApi implements OpacApi {
-
-    private static final Logger LOGGER = Logger.getLogger(Adis.class.getName());
 
     protected static HashMap<String, MediaType> types = new HashMap<>();
     protected static HashSet<String> ignoredFieldNames = new HashSet<>();
@@ -142,25 +138,12 @@ public class Adis extends ApacheBaseApi implements OpacApi {
         }
     }
 
-    protected Document getSearchPage() throws IOException {
-
-        final String methodName = "getSearchPage";
-        logInfo("%s > requestCount = %d", methodName, s_requestCount);
-
-        String url = String.format(s_hrefFormatSearch, opac_url, s_sid, s_requestCount);
-        Document doc = htmlGet(url);
-
-        logInfo("%s < requestCount = %d", methodName, s_requestCount);
-        return doc;
-    }
-
     protected void updateFormatSearch(Document doc) {
         for (Element navitem : doc.select(".search-adv-a a")) {
             if (navitem.text().contains("Erweiterte Suche")) {
                 String href = navitem.attr("href");
                 s_exts = getQueryParams(href).get("sp");
                 s_hrefFormatSearch = getQueryParamFormat(href);
-                logInfo("%s - s_hrefFormatSearch = %s", "updateFormatSearch", s_hrefFormatSearch);
                 break;
             }
         }
@@ -207,7 +190,6 @@ public class Adis extends ApacheBaseApi implements OpacApi {
             }
         }
 
-        logWarning("requestCount nicht gefunden");
         return -1;
     }
 
@@ -215,7 +197,6 @@ public class Adis extends ApacheBaseApi implements OpacApi {
         int requestCount = getRequestCount(doc);
         if (requestCount >= 0) {
             if (s_requestCount == requestCount) {
-                logWarning("requestCount didnot change");
 //                s_requestCount++;
             } else {
                 s_requestCount = requestCount;
@@ -223,7 +204,7 @@ public class Adis extends ApacheBaseApi implements OpacApi {
         }
     }
 
-    protected Document htmlExecute(final String methodName, HttpUriRequest request)
+    protected Document htmlExecute(HttpUriRequest request)
             throws IOException {
 
         HttpResponse response;
@@ -231,7 +212,6 @@ public class Adis extends ApacheBaseApi implements OpacApi {
         try {
             response = http_client.execute(request);
         } catch (javax.net.ssl.SSLPeerUnverifiedException e) {
-            LOGGER.log(Level.SEVERE, url, e);
             throw new SSLSecurityException(e.getMessage());
         } catch (javax.net.ssl.SSLException e) {
             // Can be "Not trusted server certificate" or can be a
@@ -261,68 +241,37 @@ public class Adis extends ApacheBaseApi implements OpacApi {
         String html = convertStreamToString(response.getEntity().getContent(),
                 getDefaultEncoding());
 
-        logFine("%s - html = %s", methodName, html);
-
         HttpUtils.consume(response.getEntity());
         Document doc = Jsoup.parse(html);
-
-        if (LOGGER.isLoggable(Level.INFO)) {
-            Elements h1s = doc.select("h1");
-            if (h1s.size() > 0) {
-                logInfo("%s - h1: %s", methodName, h1s.first().text());
-            }
-        }
 
         updateFormatSearch(doc);
         updateRequestCount(doc);
 
         doc.setBaseUri(url);
-        logInfo("%s < requestCount = %d, url  = %s", methodName, s_requestCount, url);
         return doc;
 
     }
 
     public Document htmlGet(String url) throws
             IOException {
-
-        final String methodName = "htmlGet";
-        logInfo("%s > requestCount = %d, url  = %s", methodName, s_requestCount, url);
-
         if (!url.contains("requestCount") && s_requestCount >= 0) {
-            logFine("%s - !url.contains(\"requestCount\")", methodName);
             url = url + (url.contains("?") ? "&" : "?") + "requestCount="
                     + s_requestCount;
-            logInfo("%s   requestCount = %d, url  = %s", methodName, s_requestCount, url);
         }
 
         HttpGet httpget = new HttpGet(cleanUrl(url));
-
-        return htmlExecute(methodName, httpget);
+        return htmlExecute(httpget);
     }
 
     public Document htmlPost(String url, List<NameValuePair> data)
             throws IOException {
-
-        final String methodName = "htmlPost";
-        logInfo("%s > requestCount = %d, url  = %s", methodName, s_requestCount, url);
-
         HttpPost httppost = new HttpPost(cleanUrl(url));
 
         boolean rcf = false;
         for (NameValuePair nv : data) {
-
-            // nur gesetzte Werte loggen
-            if ((nv.getValue() != null) && (nv.getValue().length() > 0)) {
-                logInfo("%s - %s = %s", methodName, nv.getName(), nv.getValue());
-            }
-
             if (nv.getName().equals("requestCount")) {
                 rcf = true;
-                if (!LOGGER.isLoggable(Level.INFO)) {
-                    // falls nicht geloggt wird,
-                    // kann die Schleife hier abgebrochen werden
-                    break;
-                }
+                break;
             }
         }
         if (!rcf) {
@@ -331,18 +280,15 @@ public class Adis extends ApacheBaseApi implements OpacApi {
 
         httppost.setEntity(new UrlEncodedFormEntity(data, getDefaultEncoding()));
 
-        return htmlExecute(methodName, httppost);
+        return htmlExecute(httppost);
     }
 
     @Override
     public void start() throws IOException {
-        final String methodName = "start";
         try {
             s_requestCount = -1;
-            logInfo("%s > htmlGet - s_requestCount = %d", methodName, s_requestCount);
             Document doc = htmlGet(opac_url + "?"
                     + data.getString("startparams"));
-            logInfo("%s < htmlGet - s_requestCount = %d", methodName, s_requestCount);
 
             Pattern padSid = Pattern
                     .compile(".*;jsessionid=([0-9A-Fa-f]+)[^0-9A-Fa-f].*");
@@ -399,17 +345,6 @@ public class Adis extends ApacheBaseApi implements OpacApi {
     @Override
     public SearchRequestResult search(List<SearchQuery> queries)
             throws IOException, OpacErrorException {
-
-        final String methodName = "search";
-        if (LOGGER.isLoggable(Level.FINE)) {
-            for (SearchQuery query : queries) {
-                if ((query.getValue() != null) && (query.getValue().length() > 0)) {
-                    logFine("%s - SearchQuery: %s = %s", methodName, query.getKey(),
-                            query.getValue());
-                }
-            }
-        }
-
 //        if (!initialised) {
         start();    // notwendig wenn man vom Accoun kommt
 //        }
@@ -417,7 +352,7 @@ public class Adis extends ApacheBaseApi implements OpacApi {
         // s_exts=SS2 instead of s_exts=SS6
         // e.g. munich. Treat them differently!
 
-        Document doc = getSearchPage();
+        Document doc = htmlGet(String.format(s_hrefFormatSearch, opac_url, s_sid, s_requestCount));
 
         int dropdownTextCount = 0;
         int totalCount = 0;
@@ -1143,9 +1078,6 @@ public class Adis extends ApacheBaseApi implements OpacApi {
     @Override
     public ProlongResult prolong(String media, Account account, int useraction,
             String selection) throws IOException {
-
-        final String methodName = "prolong";
-
         Document doc = htmlGetAusleihen(account);
         if (doc == null) {
             return new ProlongResult(Status.ERROR);
@@ -1153,8 +1085,6 @@ public class Adis extends ApacheBaseApi implements OpacApi {
 
         List<NameValuePair> form = new ArrayList<>();
         for (Element input : doc.select("input, select")) {
-            logInfo("%s - type=%s %s=%s", methodName, input.attr("type"),
-                    input.attr("type"), input.attr("value"));
             // erstes if passt zu getPageForm
             if (!"image".equals(input.attr("type"))
                     && !"submit".equals(input.attr("type"))
@@ -1165,9 +1095,6 @@ public class Adis extends ApacheBaseApi implements OpacApi {
             }
             if ("submit".equals(input.attr("type"))
                     && "Markierte Titel verlängern".equals(input.attr("value"))) {
-
-                logInfo("%s - type=submit %s=%s, fld=%s", methodName, input.attr("type"),
-                        input.attr("value"), input.attr("fld"));
 
                 form.add(new BasicNameValuePair(input.attr("name"), input
                         .attr("value")));
@@ -1210,9 +1137,6 @@ public class Adis extends ApacheBaseApi implements OpacApi {
     @Override
     public ProlongAllResult prolongAll(Account account, int useraction,
             String selection) throws IOException {
-
-        final String methodName = "prolongAll";
-
         Document doc = htmlGetAusleihen(account);
         if (doc == null) {
             return new ProlongAllResult(Status.ERROR);
@@ -1234,10 +1158,6 @@ public class Adis extends ApacheBaseApi implements OpacApi {
             }
             if ("submit".equals(input.attr("type"))
                     && "Markierte Titel verlängern".equals(input.attr("value"))) {
-
-                logInfo("%s - type=submit %s=%s, fld=%s", methodName, input.attr("type"),
-                        input.attr("value"), input.attr("fld"));
-
                 form.add(new BasicNameValuePair(input.attr("name"), input
                         .attr("value")));
                 form.add(new BasicNameValuePair("foucs", input
@@ -1839,7 +1759,7 @@ public class Adis extends ApacheBaseApi implements OpacApi {
             start();
         }
 
-        Document doc = getSearchPage();
+        Document doc = htmlGet(String.format(s_hrefFormatSearch, opac_url, s_sid, s_requestCount));
 
         List<SearchField> fields = new ArrayList<>();
         // dropdown to select which field you want to search in
@@ -2000,46 +1920,6 @@ public class Adis extends ApacheBaseApi implements OpacApi {
     public Set<String> getSupportedLanguages() throws IOException {
         // TODO Auto-generated method stub
         return null;
-    }
-
-    private static void logFine(String format, Object... args) {
-        if (!LOGGER.isLoggable(Level.FINE)) {
-            return;
-        }
-        String msg = String.format(format, args);
-        LOGGER.log(Level.FINE, msg);
-    }
-
-    private static void logInfo(String format, Object... args) {
-        if (!LOGGER.isLoggable(Level.INFO)) {
-            return;
-        }
-        String msg = String.format(format, args);
-        LOGGER.log(Level.INFO, msg);
-    }
-
-    private static void logWarning(String format, Object... args) {
-        if (!LOGGER.isLoggable(Level.WARNING)) {
-            return;
-        }
-        String msg = String.format(format, args);
-        LOGGER.log(Level.INFO, msg);
-    }
-
-    private static void logStart(String methodName) {
-        if (!LOGGER.isLoggable(Level.INFO)) {
-            return;
-        }
-        String msg = String.format("Start %s", methodName);
-        LOGGER.log(Level.INFO, msg);
-    }
-
-    private static void logEnde(String methodName) {
-        if (!LOGGER.isLoggable(Level.INFO)) {
-            return;
-        }
-        String msg = String.format("Ende  %s", methodName);
-        LOGGER.log(Level.INFO, msg);
     }
 
 }
