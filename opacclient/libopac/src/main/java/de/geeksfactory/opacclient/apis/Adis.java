@@ -1407,7 +1407,43 @@ public class Adis extends ApacheBaseApi implements OpacApi {
         }
         DateTimeFormatter fmt = DateTimeFormat.forPattern("dd.MM.yyyy").withLocale(Locale.GERMAN);
 
-        AccountPageReturn apr = parseAccount(doc);
+        // Mein-Konto-/Übersichtseite nach Links durchsuchen und einsammeln
+        AccountPageReturn apr1 = new AccountPageReturn();
+        List<LentItem> lent1 = new ArrayList<>();
+        for (Element tr1 : doc.select(".rTable_div tr")) {
+            Elements as = tr1.select("a");
+            if (as.size() == 1) {
+                String href = as.first().absUrl("href");
+                if (href.contains("sp=SZA")) {
+                    // Link auf die Ausleihen-Seite
+                    apr1.alink = href;
+                    apr1.anum = Integer.parseInt(tr1.child(0).text().trim());
+                } else if ((tr1.text().contains("Reservationen")
+                        || tr1.text().contains("Vormerkung")
+                        || tr1.text().contains("Fernleihbestellung")
+                        || tr1.text().contains("Bereitstellung")
+                        || tr1.text().contains("Bestellw")
+                        || tr1.text().contains("Magazin"))
+                        && !tr1.child(0).text().trim().equals("")) {
+
+                    // Link eine Reservations-Sseite
+                    apr1.rlinks.add(new String[]{
+                            tr1.select("a").text(),
+                            href,
+                    });
+                    apr1.rnum += Integer.parseInt(tr1.child(0).text().trim());
+                } else if (href.contains("sp=SZM")) {
+                    // auch Link auf Reservations-Seite,
+                    // in StB Stuttgart = tr.text().contains("Vormerkung")
+                    apr1.rlinks.add(new String[]{
+                            as.first().text(),
+                            href,
+                    });
+                    apr1.rnum += Integer.parseInt(tr1.child(0).text().trim());
+                }
+            }
+        }
+        AccountPageReturn apr = apr1;
         List<LentItem> lent = new ArrayList<>();
         if (apr.alink != null) {
             // Ausleihen-Seite aufrufen
@@ -1711,53 +1747,6 @@ public class Adis extends ApacheBaseApi implements OpacApi {
         AccountPageReturn() {
             rlinks = new ArrayList<String[]>();
         }
-    }
-
-    /**
-     * Parses die Account-Page, collects Links und num-Information
-     *
-     * @param doc the Accout-Page
-     * @return Links and num's
-     */
-    AccountPageReturn parseAccount(Document doc) {
-
-        // Mein-Konto-/Übersichtseite nach Links durchsuchen und einsammeln
-        AccountPageReturn apr = new AccountPageReturn();
-        List<LentItem> lent = new ArrayList<>();
-        for (Element tr : doc.select(".rTable_div tr")) {
-            Elements as = tr.select("a");
-            if (as.size() == 1) {
-                String href = as.first().absUrl("href");
-                if (href.contains("sp=SZA")) {
-                    // Link auf die Ausleihen-Seite
-                    apr.alink = href;
-                    apr.anum = Integer.parseInt(tr.child(0).text().trim());
-                } else if ((tr.text().contains("Reservationen")
-                        || tr.text().contains("Vormerkung")
-                        || tr.text().contains("Fernleihbestellung")
-                        || tr.text().contains("Bereitstellung")
-                        || tr.text().contains("Bestellw")
-                        || tr.text().contains("Magazin"))
-                        && !tr.child(0).text().trim().equals("")) {
-
-                    // Link eine Reservations-Sseite
-                    apr.rlinks.add(new String[]{
-                            tr.select("a").text(),
-                            href,
-                    });
-                    apr.rnum += Integer.parseInt(tr.child(0).text().trim());
-                } else if (href.contains("sp=SZM")) {
-                    // auch Link auf Reservations-Seite,
-                    // in StB Stuttgart = tr.text().contains("Vormerkung")
-                    apr.rlinks.add(new String[]{
-                            as.first().text(),
-                            href,
-                    });
-                    apr.rnum += Integer.parseInt(tr.child(0).text().trim());
-                }
-            }
-        }
-        return apr;
     }
 
     protected Document handleLoginForm(Document doc, Account account)
