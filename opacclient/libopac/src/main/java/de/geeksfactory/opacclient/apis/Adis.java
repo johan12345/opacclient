@@ -1473,71 +1473,7 @@ public class Adis extends ApacheBaseApi implements OpacApi {
                     adoc = adoc_new;
                 }
             }
-            DateTimeFormatter fmt1 =
-                    DateTimeFormat.forPattern("dd.MM.yyyy").withLocale(Locale.GERMAN);
-
-            for (Element tr : adoc.select(".rTable_div tbody tr")) {
-                LentItem item = new LentItem();
-                String text = Jsoup.parse(tr.child(3).html().replaceAll("(?i)<br[^>]*>", "#"))
-                                   .text();
-                if (text.contains(" / ")) {
-                    // Format "Titel / Autor #Sig#Nr", z.B. normale Ausleihe in Berlin
-                    String[] split = text.split("[/#\n]");
-                    String title = split[0];
-                    //Is always the last one...
-                    String id = split[split.length - 1];
-                    item.setId(id);
-                    if (split_title_author) {
-                        title = title.replaceFirst("([^:;\n]+)[:;\n](.*)$", "$1");
-                    }
-                    item.setTitle(title.trim());
-                    if (split.length > 1) {
-                        item.setAuthor(split[1].replaceFirst("([^:;\n]+)[:;\n](.*)$", "$1").trim());
-                    }
-                } else {
-                    // Format "Autor: Titel - Verlag - ISBN:... #Nummer", z.B. Fernleihe in Berlin
-                    String[] split = text.split("#");
-                    String[] aut_tit = split[0].split(": ");
-                    item.setAuthor(aut_tit[0].replaceFirst("([^:;\n]+)[:;\n](.*)$", "$1").trim());
-                    if (aut_tit.length > 1) {
-                        item.setTitle(
-                                aut_tit[1].replaceFirst("([^:;\n]+)[:;\n](.*)$", "$1").trim());
-                    }
-                    //Is always the last one...
-                    String id = split[split.length - 1];
-                    item.setId(id);
-                }
-                String date = tr.child(1).text().trim();
-                if (date.contains("-")) {
-                    // Nürnberg: "29.03.2016 - 26.04.2016"
-                    // for beginning and end date in one field
-                    date = date.split("-")[1].trim();
-                }
-                try {
-                    item.setDeadline(fmt1.parseLocalDate(date));
-                } catch (IllegalArgumentException e) {
-                    e.printStackTrace();
-                }
-                item.setHomeBranch(tr.child(2).text().trim());
-                if (tr.select("input[type=checkbox]").hasAttr("disabled")) {
-                    item.setRenewable(false);
-                } else {
-                    try {
-                        item.setRenewable(
-                                !tr.child(4).text().matches(".*nicht verl.+ngerbar.*")
-                                        &&
-                                        !tr.child(4).text()
-                                           .matches(".*Verl.+ngerung nicht m.+glich.*")
-                        );
-                    } catch (Exception e) {
-
-                    }
-                    item.setProlongData(
-                            tr.select("input[type=checkbox]").attr("name") + "|" + apr.alink);
-                }
-
-                lent.add(item);
-            }
+            parseMediaList(adoc, apr.alink, split_title_author, lent);
             assert (lent.size() == apr.anum);
 
             // Zurück auf Mein-Konto-Seite mit Abbrechen
@@ -1746,6 +1682,80 @@ public class Adis extends ApacheBaseApi implements OpacApi {
 
         AccountPageReturn() {
             rlinks = new ArrayList<String[]>();
+        }
+    }
+
+    /**
+     * Parses the (lent-) Medialist-Page
+     *
+     * @param doc                the (lent-) Medialist-page as Document
+     * @param link               link/href for Medialist-page
+     * @param split_title_author switch whether to split title and author
+     * @param lent               (initialized) list of LentItem's, for adding the found media
+     */
+    static void parseMediaList(Document doc, final String link, boolean split_title_author,
+            List<LentItem> lent) {
+        DateTimeFormatter fmt = DateTimeFormat.forPattern("dd.MM.yyyy").withLocale(Locale.GERMAN);
+        for (Element tr : doc.select(".rTable_div tbody tr")) {
+            LentItem item = new LentItem();
+            String text = Jsoup.parse(tr.child(3).html().replaceAll("(?i)<br[^>]*>", "#"))
+                               .text();
+            if (text.contains(" / ")) {
+                // Format "Titel / Autor #Sig#Nr", z.B. normale Ausleihe in Berlin
+                String[] split = text.split("[/#\n]");
+                String title = split[0];
+                //Is always the last one...
+                String id = split[split.length - 1];
+                item.setId(id);
+                if (split_title_author) {
+                    title = title.replaceFirst("([^:;\n]+)[:;\n](.*)$", "$1");
+                }
+                item.setTitle(title.trim());
+                if (split.length > 1) {
+                    item.setAuthor(split[1].replaceFirst("([^:;\n]+)[:;\n](.*)$", "$1").trim());
+                }
+            } else {
+                // Format "Autor: Titel - Verlag - ISBN:... #Nummer", z.B. Fernleihe in Berlin
+                String[] split = text.split("#");
+                String[] aut_tit = split[0].split(": ");
+                item.setAuthor(aut_tit[0].replaceFirst("([^:;\n]+)[:;\n](.*)$", "$1").trim());
+                if (aut_tit.length > 1) {
+                    item.setTitle(
+                            aut_tit[1].replaceFirst("([^:;\n]+)[:;\n](.*)$", "$1").trim());
+                }
+                //Is always the last one...
+                String id = split[split.length - 1];
+                item.setId(id);
+            }
+            String date = tr.child(1).text().trim();
+            if (date.contains("-")) {
+                // Nürnberg: "29.03.2016 - 26.04.2016"
+                // for beginning and end date in one field
+                date = date.split("-")[1].trim();
+            }
+            try {
+                item.setDeadline(fmt.parseLocalDate(date));
+            } catch (IllegalArgumentException e) {
+                e.printStackTrace();
+            }
+            item.setHomeBranch(tr.child(2).text().trim());
+            if (tr.select("input[type=checkbox]").hasAttr("disabled")) {
+                item.setRenewable(false);
+            } else {
+                try {
+                    item.setRenewable(
+                            !tr.child(4).text().matches(".*nicht verl.+ngerbar.*")
+                                    &&
+                                    !tr.child(4).text().matches(".*Verl.+ngerung nicht m.+glich.*")
+                    );
+                } catch (Exception e) {
+
+                }
+                item.setProlongData(
+                        tr.select("input[type=checkbox]").attr("name") + "|" + link);
+            }
+
+            lent.add(item);
         }
     }
 
