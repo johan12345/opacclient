@@ -1437,7 +1437,71 @@ public class Adis extends ApacheBaseApi implements OpacApi {
                     adoc = adoc_new;
                 }
             }
-            parseMediaList(adoc, apr.alink, split_title_author, lent);
+            DateTimeFormatter fmt1 =
+                    DateTimeFormat.forPattern("dd.MM.yyyy").withLocale(Locale.GERMAN);
+
+            for (Element tr : adoc.select(".rTable_div tbody tr")) {
+                LentItem item = new LentItem();
+                String text = Jsoup.parse(tr.child(3).html().replaceAll("(?i)<br[^>]*>", "#"))
+                                   .text();
+                if (text.contains(" / ")) {
+                    // Format "Titel / Autor #Sig#Nr", z.B. normale Ausleihe in Berlin
+                    String[] split = text.split("[/#\n]");
+                    String title = split[0];
+                    //Is always the last one...
+                    String id = split[split.length - 1];
+                    item.setId(id);
+                    if (split_title_author) {
+                        title = title.replaceFirst("([^:;\n]+)[:;\n](.*)$", "$1");
+                    }
+                    item.setTitle(title.trim());
+                    if (split.length > 1) {
+                        item.setAuthor(split[1].replaceFirst("([^:;\n]+)[:;\n](.*)$", "$1").trim());
+                    }
+                } else {
+                    // Format "Autor: Titel - Verlag - ISBN:... #Nummer", z.B. Fernleihe in Berlin
+                    String[] split = text.split("#");
+                    String[] aut_tit = split[0].split(": ");
+                    item.setAuthor(aut_tit[0].replaceFirst("([^:;\n]+)[:;\n](.*)$", "$1").trim());
+                    if (aut_tit.length > 1) {
+                        item.setTitle(
+                                aut_tit[1].replaceFirst("([^:;\n]+)[:;\n](.*)$", "$1").trim());
+                    }
+                    //Is always the last one...
+                    String id = split[split.length - 1];
+                    item.setId(id);
+                }
+                String date = tr.child(1).text().trim();
+                if (date.contains("-")) {
+                    // Nürnberg: "29.03.2016 - 26.04.2016"
+                    // for beginning and end date in one field
+                    date = date.split("-")[1].trim();
+                }
+                try {
+                    item.setDeadline(fmt1.parseLocalDate(date));
+                } catch (IllegalArgumentException e) {
+                    e.printStackTrace();
+                }
+                item.setHomeBranch(tr.child(2).text().trim());
+                if (tr.select("input[type=checkbox]").hasAttr("disabled")) {
+                    item.setRenewable(false);
+                } else {
+                    try {
+                        item.setRenewable(
+                                !tr.child(4).text().matches(".*nicht verl.+ngerbar.*")
+                                        &&
+                                        !tr.child(4).text()
+                                           .matches(".*Verl.+ngerung nicht m.+glich.*")
+                        );
+                    } catch (Exception e) {
+
+                    }
+                    item.setProlongData(
+                            tr.select("input[type=checkbox]").attr("name") + "|" + apr.alink);
+                }
+
+                lent.add(item);
+            }
             assert (lent.size() == apr.anum);
 
             // Zurück auf Mein-Konto-Seite mit Abbrechen
@@ -1454,7 +1518,89 @@ public class Adis extends ApacheBaseApi implements OpacApi {
             Document rdoc = htmlGet(rlink[1]);
 
             // Reservations-Seite parsen
-            boolean error = parseReservationList(rdoc, rlink, split_title_author, res, fmt);
+            boolean error1 = false;
+            boolean interlib = rdoc.html().contains("Ihre Fernleih-Bestellung");
+            boolean stacks = rdoc.html().contains("aus dem Magazin");
+            boolean provision = rdoc.html().contains("Ihre Bereitstellung");
+
+            Map<String, Integer> colmap = new HashMap<>();
+            colmap.put("title", 2);
+            colmap.put("branch", 1);
+            colmap.put("expirationdate", 0);
+            int i = 0;
+            for (Element th : rdoc.select(".rTable_div thead tr th")) {
+                if (th.text().contains("Bis")) {
+                    colmap.put("expirationdate", i);
+                }
+                if (th.text().contains("Ausgabeort")) {
+                    colmap.put("branch", i);
+                }
+                if (th.text().contains("Titel")) {
+                    colmap.put("title", i);
+                }
+                if (th.text().contains("Hinweis")) {
+                    colmap.put("status", i);
+                }
+                i++;
+
+            }
+            for (Element tr : rdoc.select(".rTable_div tbody tr")) {
+                if (tr.children().size() >= colmap.size()) {
+                    ReservedItem item = new ReservedItem();
+                    String text = tr.child(colmap.get("title")).html();
+                    text = Jsoup.parse(text.replaceAll("(?i)<br[^>]*>", ";")).text();
+                    if (split_title_author) {
+                        String[] split = text.split("[:/;\n]");
+                        item.setTitle(split[0].replaceFirst("([^:;\n]+)[:;\n](.*)$", "$1").trim());
+                        if (split.length > 1) {
+                            item.setAuthor(
+                                    split[1].replaceFirst("([^:;\n]+)[:;\n](.*)$", "$1").trim());
+                        }
+                    } else {
+                        item.setTitle(text);
+                    }
+
+                    String branch = tr.child(colmap.get("branch")).text().trim();
+                    if (interlib) {
+                        branch = stringProvider
+                                .getFormattedString(StringProvider.INTERLIB_BRANCH, branch);
+                    } else if (stacks) {
+                        branch = stringProvider
+                                .getFormattedString(StringProvider.STACKS_BRANCH, branch);
+                    } else if (provision) {
+                        branch = stringProvider
+                                .getFormattedString(StringProvider.PROVISION_BRANCH, branch);
+                    }
+                    item.setBranch(branch);
+
+                    if (rlink[0].contains("Abholbereit")) {
+                        // Abholbereite Bestellungen
+                        item.setStatus("bereit");
+                        if (tr.child(0).text().trim().length() >= 10) {
+                            item.setExpirationDate(fmt.parseLocalDate(
+                                    tr.child(colmap.get("expirationdate")).text().trim()
+                                      .substring(0, 10)));
+                        }
+                    } else {
+                        // Nicht abholbereite
+                        if (tr.select("input[type=checkbox]").size() > 0
+                                && (rlink[1].toUpperCase(Locale.GERMAN).contains(
+                                "SP=SZM") || rlink[1].toUpperCase(
+                                Locale.GERMAN).contains("SP=SZW") || rlink[1].toUpperCase(
+                                Locale.GERMAN).contains("SP=SZB"))) {
+                            item.setCancelData(
+                                    tr.select("input[type=checkbox]").attr("name") + "|" +
+                                            rlink[1]);
+                        }
+                    }
+                    res.add(item);
+                } else {
+                    // This is a strange bug where sometimes there is only three
+                    // columns
+                    error1 = true;
+                }
+            }
+            boolean error = error1;
 
             if (error) {
                 // Maybe we should send a bug report here, but using ACRA breaks
@@ -1612,177 +1758,6 @@ public class Adis extends ApacheBaseApi implements OpacApi {
             }
         }
         return apr;
-    }
-
-    /**
-     * Parses the (lent-) Medialist-Page
-     *
-     * @param doc                the (lent-) Medialist-page as Document
-     * @param link               link/href for Medialist-page
-     * @param split_title_author switch whether to split title and author
-     * @param lent               (initialized) list of LentItem's, for adding the found media
-     */
-    static void parseMediaList(Document doc, final String link, boolean split_title_author,
-            List<LentItem> lent) {
-        DateTimeFormatter fmt = DateTimeFormat.forPattern("dd.MM.yyyy").withLocale(Locale.GERMAN);
-        for (Element tr : doc.select(".rTable_div tbody tr")) {
-            LentItem item = new LentItem();
-            String text = Jsoup.parse(tr.child(3).html().replaceAll("(?i)<br[^>]*>", "#"))
-                               .text();
-            if (text.contains(" / ")) {
-                // Format "Titel / Autor #Sig#Nr", z.B. normale Ausleihe in Berlin
-                String[] split = text.split("[/#\n]");
-                String title = split[0];
-                //Is always the last one...
-                String id = split[split.length - 1];
-                item.setId(id);
-                if (split_title_author) {
-                    title = title.replaceFirst("([^:;\n]+)[:;\n](.*)$", "$1");
-                }
-                item.setTitle(title.trim());
-                if (split.length > 1) {
-                    item.setAuthor(split[1].replaceFirst("([^:;\n]+)[:;\n](.*)$", "$1").trim());
-                }
-            } else {
-                // Format "Autor: Titel - Verlag - ISBN:... #Nummer", z.B. Fernleihe in Berlin
-                String[] split = text.split("#");
-                String[] aut_tit = split[0].split(": ");
-                item.setAuthor(aut_tit[0].replaceFirst("([^:;\n]+)[:;\n](.*)$", "$1").trim());
-                if (aut_tit.length > 1) {
-                    item.setTitle(
-                            aut_tit[1].replaceFirst("([^:;\n]+)[:;\n](.*)$", "$1").trim());
-                }
-                //Is always the last one...
-                String id = split[split.length - 1];
-                item.setId(id);
-            }
-            String date = tr.child(1).text().trim();
-            if (date.contains("-")) {
-                // Nürnberg: "29.03.2016 - 26.04.2016"
-                // for beginning and end date in one field
-                date = date.split("-")[1].trim();
-            }
-            try {
-                item.setDeadline(fmt.parseLocalDate(date));
-            } catch (IllegalArgumentException e) {
-                e.printStackTrace();
-            }
-            item.setHomeBranch(tr.child(2).text().trim());
-            if (tr.select("input[type=checkbox]").hasAttr("disabled")) {
-                item.setRenewable(false);
-            } else {
-                try {
-                    item.setRenewable(
-                            !tr.child(4).text().matches(".*nicht verl.+ngerbar.*")
-                                    &&
-                                    !tr.child(4).text().matches(".*Verl.+ngerung nicht m.+glich.*")
-                    );
-                } catch (Exception e) {
-
-                }
-                item.setProlongData(
-                        tr.select("input[type=checkbox]").attr("name") + "|" + link);
-            }
-
-            lent.add(item);
-        }
-    }
-
-    /**
-     * Parses a reservation-Page
-     *
-     * @param rdoc               the reservation-page to parse as Document
-     * @param rlink              links/href for all reservation-pages
-     * @param split_title_author switch whether to split title and author
-     * @param res                list of ReservedItem's, for adding the found media
-     * @param fmt                formatter to parse the expirationdate
-     * @return true if a media-row doesnot have enough columns, otherwise false
-     */
-    boolean parseReservationList(Document rdoc, String[] rlink,
-            boolean split_title_author, List<ReservedItem> res, DateTimeFormatter fmt) {
-        boolean error = false;
-        boolean interlib = rdoc.html().contains("Ihre Fernleih-Bestellung");
-        boolean stacks = rdoc.html().contains("aus dem Magazin");
-        boolean provision = rdoc.html().contains("Ihre Bereitstellung");
-
-        Map<String, Integer> colmap = new HashMap<>();
-        colmap.put("title", 2);
-        colmap.put("branch", 1);
-        colmap.put("expirationdate", 0);
-        int i = 0;
-        for (Element th : rdoc.select(".rTable_div thead tr th")) {
-            if (th.text().contains("Bis")) {
-                colmap.put("expirationdate", i);
-            }
-            if (th.text().contains("Ausgabeort")) {
-                colmap.put("branch", i);
-            }
-            if (th.text().contains("Titel")) {
-                colmap.put("title", i);
-            }
-            if (th.text().contains("Hinweis")) {
-                colmap.put("status", i);
-            }
-            i++;
-
-        }
-        for (Element tr : rdoc.select(".rTable_div tbody tr")) {
-            if (tr.children().size() >= colmap.size()) {
-                ReservedItem item = new ReservedItem();
-                String text = tr.child(colmap.get("title")).html();
-                text = Jsoup.parse(text.replaceAll("(?i)<br[^>]*>", ";")).text();
-                if (split_title_author) {
-                    String[] split = text.split("[:/;\n]");
-                    item.setTitle(split[0].replaceFirst("([^:;\n]+)[:;\n](.*)$", "$1").trim());
-                    if (split.length > 1) {
-                        item.setAuthor(
-                                split[1].replaceFirst("([^:;\n]+)[:;\n](.*)$", "$1").trim());
-                    }
-                } else {
-                    item.setTitle(text);
-                }
-
-                String branch = tr.child(colmap.get("branch")).text().trim();
-                if (interlib) {
-                    branch = stringProvider
-                            .getFormattedString(StringProvider.INTERLIB_BRANCH, branch);
-                } else if (stacks) {
-                    branch = stringProvider
-                            .getFormattedString(StringProvider.STACKS_BRANCH, branch);
-                } else if (provision) {
-                    branch = stringProvider
-                            .getFormattedString(StringProvider.PROVISION_BRANCH, branch);
-                }
-                item.setBranch(branch);
-
-                if (rlink[0].contains("Abholbereit")) {
-                    // Abholbereite Bestellungen
-                    item.setStatus("bereit");
-                    if (tr.child(0).text().trim().length() >= 10) {
-                        item.setExpirationDate(fmt.parseLocalDate(
-                                tr.child(colmap.get("expirationdate")).text().trim()
-                                  .substring(0, 10)));
-                    }
-                } else {
-                    // Nicht abholbereite
-                    if (tr.select("input[type=checkbox]").size() > 0
-                            && (rlink[1].toUpperCase(Locale.GERMAN).contains(
-                            "SP=SZM") || rlink[1].toUpperCase(
-                            Locale.GERMAN).contains("SP=SZW") || rlink[1].toUpperCase(
-                            Locale.GERMAN).contains("SP=SZB"))) {
-                        item.setCancelData(
-                                tr.select("input[type=checkbox]").attr("name") + "|" +
-                                        rlink[1]);
-                    }
-                }
-                res.add(item);
-            } else {
-                // This is a strange bug where sometimes there is only three
-                // columns
-                error = true;
-            }
-        }
-        return error;
     }
 
     protected Document handleLoginForm(Document doc, Account account)
