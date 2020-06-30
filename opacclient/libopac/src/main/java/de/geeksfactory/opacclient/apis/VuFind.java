@@ -153,7 +153,7 @@ public class VuFind extends OkHttpBaseApi {
         if (library != null && hiddenfilters) {
             if (string) {
                 try {
-                    return URLEncoder.encode("hiddenfilters[]", "UTF-8") + "=" +
+                    return URLEncoder.encode("hiddenFilters[]", "UTF-8") + "=" +
                             URLEncoder.encode("collection:" + library, "UTF-8");
                 } catch (UnsupportedEncodingException e) {
                     return "";
@@ -204,7 +204,7 @@ public class VuFind extends OkHttpBaseApi {
 
         String hiddenfilters = getHiddenFilters(false);
         if (hiddenfilters != null) {
-            builder.addQueryParameter("hiddenfilters[]", hiddenfilters);
+            builder.addQueryParameter("hiddenFilters[]", hiddenfilters);
         }
 
         return builder;
